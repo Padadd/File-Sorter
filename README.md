@@ -1,49 +1,74 @@
 # File Sorter
 
-Small Python utilities to organize files by type and optionally schedule automatic runs.
+File Sorter is a small Python utility that organizes files in a directory into type-based subfolders. It also includes a graphical scheduler helper for automatic execution on Windows.
 
-Contents
-- `file_sorter.py` — CLI tool that scans a directory, creates subfolders by type (Images, Documents, Audio, Video, Archives, Code, Text), and moves files into them.
-- `gui_scheduler.py` — Tkinter-based GUI to choose a target directory, create category folders, save settings, and register a Windows Task Scheduler job using `schtasks`.
+## Project files
 
-Quick start
+- `file_sorter.py` — CLI tool to sort files by extension into folders such as `Images`, `Documents`, `Audio`, `Video`, `Archives`, `Code`, and `Text`.
+- `gui_scheduler.py` — Tkinter GUI to select a target folder, create category folders, save preferences, and optionally register a Windows Task Scheduler task.
+- `LICENSE` — MIT license for this project.
+- `.gitignore` — common Python ignores.
 
-Requirements: Python 3.8 or newer.
+## Requirements
 
-Run the CLI sorter:
+- Python 3.8 or newer
+- On Windows: `schtasks` is required for the scheduling feature
+
+## Quick start
+
+### 1) Run the CLI sorter
 
 ```powershell
 python file_sorter.py
 ```
 
-Run the GUI (Windows recommended for scheduling):
+Enter the directory path when prompted, or press Enter to sort the current working folder.
+
+### 2) Use the scheduler GUI
 
 ```powershell
 python gui_scheduler.py
 ```
 
-Features
-- Organizes files into category folders by common file extensions.
-- GUI lets you select a target folder, create category folders, and schedule automatic runs.
-- Scheduling options (English): "Once a day", "Every N days", "Once a week", "Once every 2 weeks", "Once a month".
-- Settings are saved to `scheduler_settings.json` when saved from the GUI.
+The GUI lets you:
 
-Notes
-- Scheduling integrations use Windows `schtasks` — available only on Windows. The GUI will notify if `schtasks` is not found.
-- Test the sorter in a sample folder before running it on important directories.
+- choose a target folder
+- create the category folders automatically
+- save scheduler settings to `scheduler_settings.json`
+- register a Windows scheduled task to run the sorter automatically
 
-Contributing
-- Suggestions: add a `--dry-run` preview mode, improved logging, unit tests for `organize_directory()`, or cross-platform scheduling (cron/systemd).
+## Scheduling options
 
-License
-- No license specified. Add a `LICENSE` file to make this project open-source.
+The GUI provides English scheduling options:
 
-Publishing
-- Badges: (optional) Add build, PyPI, or license badges as desired. Example placeholders:
+- `Once a day`
+- `Every N days`
+- `Once a week`
+- `Once every 2 weeks`
+- `Once a month`
 
-```
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.8%2B-brightgreen.svg)]()
-```
+## Features
 
-- Repository is now licensed under the MIT License (see `LICENSE`).
+- Auto-moves files into type-based folders
+- Supports common file types for images, documents, audio, video, archives, code, and text
+- Simple command line interface
+- Graphical interface for Windows scheduling
+- Saves scheduler preferences for later reuse
+
+## Notes
+
+- The scheduling feature uses Windows Task Scheduler and only works on Windows systems with `schtasks` available.
+- Always test the sorter in a non-critical folder first to confirm the output structure.
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE`.
+
+## Contributions
+
+Contributions are welcome. Suggested improvements:
+
+- add a `--dry-run` preview mode
+- add file move logging
+- add unit tests for the sorting logic
+- support cross-platform scheduling (cron or systemd)
