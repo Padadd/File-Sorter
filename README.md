@@ -37,3 +37,13 @@ Contributing
 
 License
 - No license specified. Add a `LICENSE` file to make this project open-source.
+
+Publishing
+- Badges: (optional) Add build, PyPI, or license badges as desired. Example placeholders:
+
+```
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.8%2B-brightgreen.svg)]()
+```
+
+- Repository is now licensed under the MIT License (see `LICENSE`).
