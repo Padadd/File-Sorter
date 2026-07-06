@@ -64,16 +64,24 @@ def schtasks_available() -> bool:
         return False
 
 
-def register_schtask(python_exe: str, script_path: str, target_dir: str, when: str, mode: str, days: str) -> subprocess.CompletedProcess:
-    # Build the command for schtasks
-    # Example: schtasks /Create /SC DAILY /TN "FileSorter" /TR "python C:\path\file_sorter.py C:\target" /ST 14:00 /F
+def register_schtask(python_exe: str, script_path: str, target_dir: str, when: str, sc: str, mo: str, d_param: str) -> subprocess.CompletedProcess:
+    # Build the command for schtasks using schedule type (sc), modifier (mo) and day parameter (d_param)
+    # Examples:
+    #  - Daily every N days: /SC DAILY /MO N
+    #  - Weekly on MON: /SC WEEKLY /MO 1 /D MON
+    #  - Weekly every 2 weeks: /SC WEEKLY /MO 2 /D MON
+    #  - Monthly on day 1: /SC MONTHLY /MO 1 /D 1
     name = f"FileSorter_{os.path.basename(target_dir)}"
     tr = f'"{shlex.quote(python_exe)}" "{script_path}" "{target_dir}"'
     cmd = [
         "schtasks",
         "/Create",
         "/SC",
-        mode.upper(),
+        sc.upper(),
+    ]
+    if mo:
+        cmd.extend(["/MO", str(mo)])
+    cmd.extend([
         "/TN",
         name,
         "/TR",
@@ -81,9 +89,11 @@ def register_schtask(python_exe: str, script_path: str, target_dir: str, when: s
         "/ST",
         when,
         "/F",
-    ]
-    if mode.upper() == "WEEKLY" and days:
-        cmd.extend(["/D", days])
+    ])
+    if sc.upper() == "WEEKLY" and d_param:
+        cmd.extend(["/D", d_param])
+    if sc.upper() == "MONTHLY" and d_param:
+        cmd.extend(["/D", d_param])
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
@@ -101,20 +111,35 @@ class App:
 
         tk.Button(root, text="Create category folders", command=self.create_folders).grid(row=1, column=1, sticky="w")
 
-        tk.Label(root, text="Schedule:").grid(row=2, column=0, sticky="w")
-        self.mode_var = tk.StringVar(value=self.settings.get("mode", "DAILY"))
-        tk.OptionMenu(root, self.mode_var, "DAILY", "WEEKLY").grid(row=2, column=1, sticky="w")
+        tk.Label(root, text="Schedule frequency:").grid(row=2, column=0, sticky="w")
+        self.freq_var = tk.StringVar(value=self.settings.get("frequency", "Once a day"))
+        freq_options = [
+            "Once a day",
+            "Every N days",
+            "Once a week",
+            "Once every 2 weeks",
+            "Once a month",
+        ]
+        tk.OptionMenu(root, self.freq_var, *freq_options).grid(row=2, column=1, sticky="w")
 
         tk.Label(root, text="Time (HH:MM, 24h):").grid(row=3, column=0, sticky="w")
         self.time_var = tk.StringVar(value=self.settings.get("time", "09:00"))
         tk.Entry(root, textvariable=self.time_var, width=10).grid(row=3, column=1, sticky="w")
 
-        tk.Label(root, text="Weekdays (MON,TUE,... for weekly):").grid(row=4, column=0, sticky="w")
-        self.days_var = tk.StringVar(value=self.settings.get("days", "MON"))
-        tk.Entry(root, textvariable=self.days_var, width=20).grid(row=4, column=1, sticky="w")
+        tk.Label(root, text="Interval N (for 'Every N days'):").grid(row=4, column=0, sticky="w")
+        self.interval_var = tk.StringVar(value=str(self.settings.get("interval", "3")))
+        tk.Entry(root, textvariable=self.interval_var, width=5).grid(row=4, column=1, sticky="w")
 
-        tk.Button(root, text="Save settings", command=self.save).grid(row=5, column=0)
-        tk.Button(root, text="Create scheduled task", command=self.schedule).grid(row=5, column=1)
+        tk.Label(root, text="Weekdays (MON,TUE,... for weekly/biweekly):").grid(row=5, column=0, sticky="w")
+        self.days_var = tk.StringVar(value=self.settings.get("days", "MON"))
+        tk.Entry(root, textvariable=self.days_var, width=20).grid(row=5, column=1, sticky="w")
+
+        tk.Label(root, text="Day of month (1-31 for monthly):").grid(row=6, column=0, sticky="w")
+        self.day_of_month_var = tk.StringVar(value=str(self.settings.get("day_of_month", "1")))
+        tk.Entry(root, textvariable=self.day_of_month_var, width=5).grid(row=6, column=1, sticky="w")
+
+        tk.Button(root, text="Save settings", command=self.save).grid(row=7, column=0)
+        tk.Button(root, text="Create scheduled task", command=self.schedule).grid(row=7, column=1)
 
     def browse(self):
         d = filedialog.askdirectory(initialdir=os.getcwd())
@@ -130,15 +155,24 @@ class App:
             messagebox.showerror("Error", str(e))
 
     def save(self):
-        data = {"path": self.path_var.get(), "mode": self.mode_var.get(), "time": self.time_var.get(), "days": self.days_var.get()}
+        data = {
+            "path": self.path_var.get(),
+            "frequency": self.freq_var.get(),
+            "time": self.time_var.get(),
+            "interval": self.interval_var.get(),
+            "days": self.days_var.get(),
+            "day_of_month": self.day_of_month_var.get(),
+        }
         save_settings(data)
         messagebox.showinfo("Saved", f"Settings saved to {SETTINGS_FILE}")
 
     def schedule(self):
         p = self.path_var.get().strip() or os.getcwd()
         when = self.time_var.get().strip()
-        mode = self.mode_var.get().strip()
+        frequency = self.freq_var.get().strip()
+        interval = self.interval_var.get().strip()
         days = self.days_var.get().strip()
+        day_of_month = self.day_of_month_var.get().strip()
         # Validate time
         if not when or len(when) != 5 or when[2] != ":":
             messagebox.showerror("Invalid time", "Time must be in HH:MM format")
@@ -155,7 +189,34 @@ class App:
         python_exe = sys.executable or "python"
         script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "file_sorter.py"))
 
-        res = register_schtask(python_exe, script_path, p, when, mode, days if mode == "WEEKLY" else "")
+        # Map GUI frequency to schtasks parameters
+        sc = "DAILY"
+        mo = "1"
+        d_param = ""
+        if frequency == "Once a day":
+            sc = "DAILY"
+            mo = "1"
+        elif frequency == "Every N days":
+            sc = "DAILY"
+            try:
+                mo = str(max(1, int(interval)))
+            except Exception:
+                messagebox.showerror("Invalid interval", "Interval must be a positive integer")
+                return
+        elif frequency == "Once a week":
+            sc = "WEEKLY"
+            mo = "1"
+            d_param = days
+        elif frequency == "Once every 2 weeks":
+            sc = "WEEKLY"
+            mo = "2"
+            d_param = days
+        elif frequency == "Once a month":
+            sc = "MONTHLY"
+            mo = "1"
+            d_param = day_of_month
+
+        res = register_schtask(python_exe, script_path, p, when, sc, mo, d_param)
         if res.returncode == 0:
             messagebox.showinfo("Scheduled", "Task created successfully")
         else:
